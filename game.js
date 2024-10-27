@@ -27,7 +27,6 @@ const DIFFICULTY = {
 let canvas, ctx;
 let player, enemies, bullets;
 let score, highScores, level, lives;
-let gameLoop;
 let gameState = 'menu';
 let playerImage, enemyImages;
 let shootSound, hitSound;
@@ -35,6 +34,7 @@ let difficulty = DIFFICULTY.MEDIUM;
 let selectedMenuOption = 0;
 let isMobile = false;
 let scaleFactor = 1;
+let lastTime = 0;
 
 // Initialize the game
 function init() {
@@ -86,18 +86,8 @@ function init() {
         document.getElementById('fireButton').addEventListener('touchstart', shoot);
     }
 
-    // Ensure all images are loaded
-    const imagesToLoad = [playerImage, ...Object.values(enemyImages)];
-    Promise.all(imagesToLoad.map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve; // Handle missing images gracefully
-        });
-    })).then(() => {
-        // Start game loop
-        requestAnimationFrame(gameLoop);
-    });
+    // Start game loop
+    requestAnimationFrame(gameLoop);
 }
 
 function resizeCanvas() {
@@ -558,8 +548,6 @@ function drawGameOverScreen() {
 }
 
 // Game loop
-// Game loop
-let lastTime = 0;
 function gameLoop(currentTime) {
     const deltaTime = currentTime - lastTime;
     lastTime = currentTime;
