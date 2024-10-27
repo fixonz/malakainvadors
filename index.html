@@ -4,17 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Invaders</title>
+    <title>Malakai Cabal Invadooorz</title>
     <style>
+        body { margin: 0; overflow: hidden; background-color: black; }
         canvas {
-            border: 1px solid black;
+            border: 1px solid white;
             display: block;
             margin: 0 auto;
+        }
+        #intro { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            color: white; 
+            font-size: 48px; 
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
     </style>
 </head>
 <body>
+    <div id="intro">
+        <h1>Malakai Cabal Invadooorz</h1>
+        <p>Press SPACE to start</p>
+    </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <img id="playerImage" src="player.png" style="display:none;">
+    <img id="enemyImage" src="enemy.png" style="display:none;">
     <script src="game.js"></script>
 </body>
 </html>
