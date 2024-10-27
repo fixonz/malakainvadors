@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Malakai Cabal Invadooorz</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <style>
         @font-face {
             font-family: 'PrStart';
@@ -17,20 +18,39 @@
             margin: 0;
             background-color: #000;
             font-family: 'PrStart', sans-serif;
+            color: white;
         }
         canvas {
             border: 1px solid white;
         }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+    <div id="loading">Loading game assets...</div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <img id="playerImage" src="player.png" style="display: none;">
     <img id="enemyBasicImage" src="enemy_basic.png" style="display: none;">
     <img id="enemyFastImage" src="enemy_fast.png" style="display: none;">
     <img id="enemyToughImage" src="enemy_tough.png" style="display: none;">
-    <audio id="shootSound" src="shoot.wav"></audio>
+    <audio id="shootSound" src="shoot.mp3"></audio>
     <audio id="hitSound" src="hit.wav"></audio>
+    <noscript>
+        <p>JavaScript is required to play this game. Please enable JavaScript in your browser settings.</p>
+    </noscript>
     <script src="game.js"></script>
+    <script>
+        window.onload = function() {
+            document.getElementById('loading').style.display = 'none';
+            init(); // Call the init function from game.js
+        }
+    </script>
 </body>
 </html>
