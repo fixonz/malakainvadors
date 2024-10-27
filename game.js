@@ -558,6 +558,7 @@ function drawGameOverScreen() {
 }
 
 // Game loop
+// Game loop
 let lastTime = 0;
 function gameLoop(currentTime) {
     const deltaTime = currentTime - lastTime;
@@ -568,4 +569,7 @@ function gameLoop(currentTime) {
 }
 
 // Start the game when the page loads
-window.onload = init;
+window.addEventListener('load', function() {
+    document.getElementById('loading').style.display = 'none';
+    init();
+});
