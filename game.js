@@ -28,10 +28,11 @@ let canvas, ctx;
 let player, enemies, bullets;
 let score, highScores, level, lives;
 let gameLoop;
-let gameState = 'start';
+let gameState = 'menu';
 let playerImage, enemyImages;
 let shootSound, hitSound;
 let difficulty = DIFFICULTY.MEDIUM;
+let selectedMenuOption = 0;
 
 // Initialize the game
 function init() {
@@ -148,18 +149,32 @@ function createBossLevel() {
 
 // Handle keydown events
 function handleKeyDown(e) {
-    if (gameState === 'start') {
+    if (gameState === 'menu') {
+        if (e.key === 'ArrowUp') {
+            selectedMenuOption = (selectedMenuOption - 1 + 2) % 2;
+        } else if (e.key === 'ArrowDown') {
+            selectedMenuOption = (selectedMenuOption + 1) % 2;
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            if (selectedMenuOption === 0) {
+                gameState = 'difficultySelect';
+            } else {
+                gameState = 'highScores';
+            }
+        }
+    } else if (gameState === 'difficultySelect') {
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             changeDifficulty(e.key === 'ArrowUp' ? -1 : 1);
-        } else if (e.key === ' ') {
+        } else if (e.key === ' ' || e.key === 'Enter') {
             startGame();
         }
     } else if (gameState === 'playing') {
         if (e.key === 'ArrowLeft') player.moveLeft = true;
         if (e.key === 'ArrowRight') player.moveRight = true;
         if (e.key === ' ') shoot();
-    } else if (gameState === 'gameOver' && e.key === ' ') {
-        gameState = 'start';
+    } else if (gameState === 'gameOver' && (e.key === ' ' || e.key === 'Enter')) {
+        gameState = 'menu';
+    } else if (gameState === 'highScores' && (e.key === ' ' || e.key === 'Enter')) {
+        gameState = 'menu';
     }
 }
 
@@ -227,13 +242,20 @@ function enemyShoot(enemy) {
 
 // Update game state
 function update() {
-    if (gameState === 'start') {
-        drawStartScreen();
-        return;
+    if (gameState === 'menu') {
+        drawMenuScreen();
+    } else if (gameState === 'difficultySelect') {
+        drawDifficultyScreen();
+    } else if (gameState === 'highScores') {
+        drawHighScoresScreen();
+    } else if (gameState === 'playing') {
+        updateGameplay();
+    } else if (gameState === 'gameOver') {
+        drawGameOverScreen();
     }
+}
 
-    if (gameState !== 'playing') return;
-
+function updateGameplay() {
     // Move player
     if (player.moveLeft && player.x > 0) player.x -= player.speed;
     if (player.moveRight && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed;
@@ -278,11 +300,11 @@ function update() {
     }
 
     // Draw everything
-    draw();
+    drawGameplay();
 }
 
-// Draw start screen
-function drawStartScreen() {
+// Draw menu screen
+function drawMenuScreen() {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -293,21 +315,56 @@ function drawStartScreen() {
     ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, 150);
 
     ctx.font = '24px PrStart';
-    ctx.fillText('Select Difficulty:', CANVAS_WIDTH / 2, 250);
+    ctx.fillStyle = selectedMenuOption === 0 ? 'yellow' : 'white';
+    ctx.fillText('Start', CANVAS_WIDTH / 2, 300);
+    ctx.fillStyle = selectedMenuOption === 1 ? 'yellow' : 'white';
+    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 350);
 
+    ctx.fillStyle = 'white';
+    ctx.font = '16px PrStart';
+    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450);
+    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480);
+}
+
+// Draw difficulty select screen
+function drawDifficultyScreen() {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '36px PrStart';
+    ctx.textAlign = 'center';
+    ctx.fillText('Select Difficulty', CANVAS_WIDTH / 2, 100);
+
+    ctx.font = '24px PrStart';
     Object.values(DIFFICULTY).forEach((diff, index) => {
         ctx.fillStyle = diff === difficulty ? 'yellow' : 'white';
-        ctx.fillText(diff.label, CANVAS_WIDTH / 2, 300 + index * 40);
+        ctx.fillText(diff.label, CANVAS_WIDTH / 2, 250 + index * 50);
     });
 
     ctx.fillStyle = 'white';
     ctx.font = '16px PrStart';
-    ctx.fillText('Press SPACE to start', CANVAS_WIDTH / 2, 450);
+    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450);
+    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480);
+}
 
-    ctx.fillText('High Scores:', CANVAS_WIDTH / 2, 500);
-    highScores.slice(0, 5).forEach((score, index) => {
-        ctx.fillText(`${index + 1}. ${score}`, CANVAS_WIDTH / 2, 530 + index * 30);
+// Draw high scores screen
+function drawHighScoresScreen() {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '36px PrStart';
+    ctx.textAlign = 'center';
+    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 100);
+
+    ctx.font = '18px PrStart';
+    highScores.slice(0, 10).forEach((score, index) => {
+        ctx.fillText(`${index + 1}. ${score.name}: ${score.score}`, CANVAS_WIDTH / 2, 200 + index * 30);
     });
+
+    ctx.font = '16px PrStart';
+    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, 550);
 }
 
 // Check collisions between bullets and enemies
@@ -365,7 +422,7 @@ function checkCollisions() {
 }
 
 // Draw game objects
-function draw() {
+function drawGameplay() {
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -427,19 +484,29 @@ function gameOver() {
     clearInterval(gameLoop);
 
     // Update high scores
-    highScores.push(score);
-    highScores.sort((a, b) => b - a);
-    highScores = highScores.slice(0, 5);
+    const playerName = prompt("Enter your name for the high score:");
+    highScores.push({ name: playerName || "Anonymous", score: score });
+    highScores.sort((a, b) => b.score - a.score);
+    highScores = highScores.slice(0, 10);
     localStorage.setItem('highScores', JSON.stringify(highScores));
+}
+
+// Draw game over screen
+function drawGameOverScreen() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     ctx.fillStyle = 'white';
-    ctx.font = '24px PrStart';
+    ctx.font = '36px PrStart';
     ctx.textAlign = 'center';
     ctx.fillText('Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
-    ctx.font = '16px PrStart';
-    ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+
+    ctx.font = '24px PrStart';
+    ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
+    ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+
+    ctx.font = '18px PrStart';
+    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
 }
 
 // Start the game when the page loads
