@@ -3,11 +3,11 @@
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 const PLAYER_WIDTH = 50;
-const PLAYER_HEIGHT = 30;
-const ENEMY_WIDTH = 40;
+const PLAYER_HEIGHT = 40;
+const ENEMY_WIDTH = 38;
 const ENEMY_HEIGHT = 30;
-const BULLET_WIDTH = 3;
-const BULLET_HEIGHT = 15;
+const BULLET_WIDTH = 2;
+const BULLET_HEIGHT = 10;
 
 // Game variables
 let canvas, ctx;
