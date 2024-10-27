@@ -151,7 +151,7 @@ function resizeCanvas() {
 
 // Create enemies for the current level
 function createEnemies() {
-    if (level % 5 === 0) {
+    if (level % 10 === 0) {
         createBossLevel();
     } else {
         createRegularLevel();
@@ -159,58 +159,61 @@ function createEnemies() {
 }
 
 function createRegularLevel() {
-    const rows = Math.min(3 + Math.floor(level / 3), 7);
-    const cols = Math.min(6 + Math.floor(level / 4), 12);
+    const enemyCount = 5 + (level * 5); // Starts with 10 enemies, increases by 5 each level
+    const availableTypes = [ENEMY_TYPES.BASIC];
+    
+    if (level >= 5) availableTypes.push(ENEMY_TYPES.FAST);
+    if (level >= 10) availableTypes.push(ENEMY_TYPES.TOUGH);
+    if (level >= 15) availableTypes.push(ENEMY_TYPES.ZIGZAG);
+    if (level >= 20) availableTypes.push(ENEMY_TYPES.CIRCULAR);
+    if (level >= 25) availableTypes.push(ENEMY_TYPES.DIVING);
 
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-            let type = ENEMY_TYPES.BASIC;
-            let health = 1 + Math.floor(level / 10);
-            let speed = (1 + (level * 0.1)) * difficulty.multiplier;
-            let movementPattern = MOVEMENT_PATTERNS.LINEAR;
+    for (let i = 0; i < enemyCount; i++) {
+        const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+        let health = 1 + Math.floor(level / 10);
+        let speed = (1 + (level * 0.05)) * difficulty.multiplier;
+        let movementPattern = MOVEMENT_PATTERNS.LINEAR;
 
-            const randomValue = Math.random();
-            if (randomValue < 0.1 + (level * 0.01)) {
-                type = ENEMY_TYPES.FAST;
+        switch (type) {
+            case ENEMY_TYPES.FAST:
                 speed *= 1.5;
-            } else if (randomValue < 0.15 + (level * 0.015)) {
-                type = ENEMY_TYPES.TOUGH;
+                break;
+            case ENEMY_TYPES.TOUGH:
                 health *= 2;
                 speed *= 0.75;
-            } else if (randomValue < 0.2 + (level * 0.02)) {
-                type = ENEMY_TYPES.ZIGZAG;
+                break;
+            case ENEMY_TYPES.ZIGZAG:
                 movementPattern = MOVEMENT_PATTERNS.ZIGZAG;
-            } else if (randomValue < 0.25 + (level * 0.025)) {
-                type = ENEMY_TYPES.CIRCULAR;
+                break;
+            case ENEMY_TYPES.CIRCULAR:
                 movementPattern = MOVEMENT_PATTERNS.CIRCULAR;
-            } else if (randomValue < 0.3 + (level * 0.03)) {
-                type = ENEMY_TYPES.DIVING;
+                break;
+            case ENEMY_TYPES.DIVING:
                 movementPattern = MOVEMENT_PATTERNS.DIVING;
-            }
-
-            enemies.push({
-                x: j * (ENEMY_WIDTH + 20) + 50,
-                y: i * (ENEMY_HEIGHT + 20) + 50,
-                width: ENEMY_WIDTH,
-                height: ENEMY_HEIGHT,
-                speed: speed,
-                type: type,
-                health: health,
-                shootCooldown: type === ENEMY_TYPES.TOUGH ? Math.max(120 - level * 2, 30) : 0,
-                canShoot: type === ENEMY_TYPES.TOUGH,
-                movementPattern: movementPattern,
-                movementTimer: 0,
-                initialX: j * (ENEMY_WIDTH + 20) + 50,
-                initialY: i * (ENEMY_HEIGHT + 20) + 50
-            });
+                break;
         }
+
+        enemies.push({
+            x: Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH),
+            y: Math.random() * (CANVAS_HEIGHT / 2),
+            width: ENEMY_WIDTH,
+            height: ENEMY_HEIGHT,
+            speed: speed,
+            type: type,
+            health: health,
+            shootCooldown: type === ENEMY_TYPES.TOUGH ? Math.max(120 - level * 2, 30) : 0,
+            canShoot: type === ENEMY_TYPES.TOUGH,
+            movementPattern: movementPattern,
+            movementTimer: 0,
+            initialX: Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH),
+            initialY: Math.random() * (CANVAS_HEIGHT / 2)
+        });
     }
 }
-
 function createBossLevel() {
     const bossHealth = 50 + (level * 10);
-    const bossSpeed = (2 + (level * 0.2)) * difficulty.multiplier;
-    const bossSize = 2 + Math.min(level / 10, 3); // Boss size increases with level, max 5x
+    const bossSpeed = (2 + (level * 0.1)) * difficulty.multiplier;
+    const bossSize = 2 + Math.min(level / 20, 3); // Boss size increases with level, max 5x
 
     enemies.push({
         x: CANVAS_WIDTH / 2 - (ENEMY_WIDTH * bossSize) / 2,
@@ -225,12 +228,11 @@ function createBossLevel() {
         movementPattern: MOVEMENT_PATTERNS.LINEAR
     });
 
-    // Add small ships around the boss
+    // Add a few regular enemies
     for (let i = 0; i < 5; i++) {
         createRegularLevel();
     }
 }
-
 // Handle keydown events
 function handleKeyDown(e) {
     if (isMobile) return; // Ignore keyboard events on mobile devices
@@ -528,11 +530,35 @@ function drawMenuScreen(deltaTime) {
     ctx.textAlign = 'center';
     ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, titleY * scaleFactor);
     ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, (titleY + 50) * scaleFactor);
-
+    
     // Fade in options
     optionsOpacity += 0.02 * (deltaTime / 16);
     if (optionsOpacity > 1) optionsOpacity = 1;
+        // Draw player ship
+    if (playerImage.complete) {
+        ctx.drawImage(playerImage, CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
+    } else {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
+    }
 
+    // Draw some enemy ships
+    const enemyTypes = [ENEMY_TYPES.BASIC, ENEMY_TYPES.FAST, ENEMY_TYPES.TOUGH, ENEMY_TYPES.ZIGZAG, ENEMY_TYPES.CIRCULAR, ENEMY_TYPES.DIVING];
+    enemyTypes.forEach((type, index) => {
+        const x = (CANVAS_WIDTH / (enemyTypes.length + 1)) * (index + 1);
+        const y = CANVAS_HEIGHT - 150;
+        const enemyImage = enemyImages[type];
+        if (enemyImage && enemyImage.complete) {
+            ctx.drawImage(enemyImage, x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
+        } else {
+            ctx.fillStyle = type === ENEMY_TYPES.FAST ? 'green' : 
+                            type === ENEMY_TYPES.TOUGH ? 'purple' :
+                            type === ENEMY_TYPES.ZIGZAG ? 'orange' :
+                            type === ENEMY_TYPES.CIRCULAR ? 'cyan' :
+                            type === ENEMY_TYPES.DIVING ? 'magenta' : 'red';
+            ctx.fillRect(x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
+        }
+    });
     ctx.globalAlpha = optionsOpacity;
     ctx.font = `${24 * scaleFactor}px PrStart`;
     ctx.fillStyle = selectedMenuOption === 0 ? 'yellow' : 'white';
@@ -703,11 +729,15 @@ function drawGameplay() {
     });
 
     // Draw power-ups
-    powerUps.forEach(powerUp => {
-        ctx.fillStyle = powerUp.type === POWER_UP_TYPES.SHIELD ? 'cyan' :
-                        powerUp.type === POWER_UP_TYPES.RAPID_FIRE ? 'orange' : 'green';
-        ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
-    });
+        powerUps.forEach(powerUp => {
+            ctx.font = `${30 * scaleFactor}px Arial`;
+            ctx.fillText(
+                powerUp.type === POWER_UP_TYPES.SHIELD ? '🛡️' :
+                powerUp.type === POWER_UP_TYPES.RAPID_FIRE ? '🔥' : '❤️',
+                powerUp.x, powerUp.y + 30
+            );    
+        });
+    
 
     // Draw score, level, and lives
     ctx.fillStyle = 'white';
@@ -715,7 +745,7 @@ function drawGameplay() {
     ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 50 * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'right';
-    ctx.fillText(`Level: ${level}`, (CANVAS_WIDTH - 50) * scaleFactor, 30 * scaleFactor);
+ctx.fillText(`Level: ${level}`, (CANVAS_WIDTH - 20) * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'center';
     ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30 * scaleFactor);
 
