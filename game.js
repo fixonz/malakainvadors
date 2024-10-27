@@ -743,14 +743,15 @@ function drawGameplay() {
         }
     });
 
-    // Draw bullets
+        // Draw bullets
     ctx.fillStyle = 'yellow';
     bullets.forEach(bullet => {
         if (bullet.isEnemyBullet) {
             ctx.fillStyle = 'red';
         } else {
             ctx.fillStyle = 'yellow';
-         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+        }
+        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
 
     // Draw power-ups
@@ -762,7 +763,6 @@ function drawGameplay() {
             powerUp.x, powerUp.y + 30
         );
     });
-
     // Draw barriers
     ctx.fillStyle = 'gray';
     barriers.forEach(barrier => {
