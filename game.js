@@ -681,10 +681,6 @@ function drawGameplay() {
                             enemy.type === ENEMY_TYPES.DIVING ? 'magenta' : 'red';
             ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
         }
-
-        // Draw health bar for boss
-        if (enemy.type === ENEMY_TYPES.BOSS) {
-            const healthPercentage = enemy.health / (50 + (level * 10));
                     // Draw health bar for boss
         if (enemy.type === ENEMY_TYPES.BOSS) {
             const healthPercentage = enemy.health / (50 + (level * 10));
