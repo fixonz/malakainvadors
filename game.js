@@ -33,11 +33,20 @@ let playerImage, enemyImages;
 let shootSound, hitSound;
 let difficulty = DIFFICULTY.MEDIUM;
 let selectedMenuOption = 0;
+let isMobile = false;
+let scaleFactor = 1;
 
 // Initialize the game
 function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+
+    // Check if the device is mobile
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Set up the canvas size
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
     playerImage = document.getElementById('playerImage');
     enemyImages = {
@@ -67,6 +76,16 @@ function init() {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
+    // Add touch event listeners for mobile
+    if (isMobile) {
+        document.getElementById('mobileControls').style.display = 'flex';
+        document.getElementById('leftButton').addEventListener('touchstart', () => player.moveLeft = true);
+        document.getElementById('leftButton').addEventListener('touchend', () => player.moveLeft = false);
+        document.getElementById('rightButton').addEventListener('touchstart', () => player.moveRight = true);
+        document.getElementById('rightButton').addEventListener('touchend', () => player.moveRight = false);
+        document.getElementById('fireButton').addEventListener('touchstart', shoot);
+    }
+
     // Ensure all images are loaded
     const imagesToLoad = [playerImage, ...Object.values(enemyImages)];
     Promise.all(imagesToLoad.map(img => {
@@ -77,8 +96,32 @@ function init() {
         });
     })).then(() => {
         // Start game loop
-        gameLoop = setInterval(update, 1000 / 60); // 60 FPS
+        requestAnimationFrame(gameLoop);
     });
+}
+
+function resizeCanvas() {
+    const gameContainer = document.getElementById('gameContainer');
+    const containerWidth = gameContainer.clientWidth;
+    const containerHeight = gameContainer.clientHeight;
+
+    const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
+    let newWidth, newHeight;
+
+    if (containerWidth / containerHeight > aspectRatio) {
+        newHeight = containerHeight;
+        newWidth = newHeight * aspectRatio;
+    } else {
+        newWidth = containerWidth;
+        newHeight = newWidth / aspectRatio;
+    }
+
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+
+    scaleFactor = newWidth / CANVAS_WIDTH;
 }
 
 // Create enemies for the current level
@@ -149,6 +192,8 @@ function createBossLevel() {
 
 // Handle keydown events
 function handleKeyDown(e) {
+    if (isMobile) return; // Ignore keyboard events on mobile devices
+
     if (gameState === 'menu') {
         if (e.key === 'ArrowUp') {
             selectedMenuOption = (selectedMenuOption - 1 + 2) % 2;
@@ -180,6 +225,8 @@ function handleKeyDown(e) {
 
 // Handle keyup events
 function handleKeyUp(e) {
+    if (isMobile) return; // Ignore keyboard events on mobile devices
+
     if (e.key === 'ArrowLeft') player.moveLeft = false;
     if (e.key === 'ArrowRight') player.moveRight = false;
 }
@@ -203,6 +250,8 @@ function startGame() {
 
 // Shoot a bullet
 function shoot() {
+    if (gameState !== 'playing') return;
+
     bullets.push({
         x: player.x + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
         y: player.y,
@@ -241,7 +290,7 @@ function enemyShoot(enemy) {
 }
 
 // Update game state
-function update() {
+function update(deltaTime) {
     if (gameState === 'menu') {
         drawMenuScreen();
     } else if (gameState === 'difficultySelect') {
@@ -249,32 +298,32 @@ function update() {
     } else if (gameState === 'highScores') {
         drawHighScoresScreen();
     } else if (gameState === 'playing') {
-        updateGameplay();
+        updateGameplay(deltaTime);
     } else if (gameState === 'gameOver') {
         drawGameOverScreen();
     }
 }
 
-function updateGameplay() {
+function updateGameplay(deltaTime) {
     // Move player
-    if (player.moveLeft && player.x > 0) player.x -= player.speed;
-    if (player.moveRight && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed;
+    if (player.moveLeft && player.x > 0) player.x -= player.speed * (deltaTime / 16);
+    if (player.moveRight && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed * (deltaTime / 16);
 
     // Move bullets
     bullets.forEach((bullet, index) => {
-        bullet.y -= bullet.speed;
+        bullet.y -= bullet.speed * (deltaTime / 16);
         if (bullet.y + bullet.height < 0 || bullet.y > CANVAS_HEIGHT) bullets.splice(index, 1);
     });
 
     // Move enemies
     enemies.forEach(enemy => {
         if (enemy.type === ENEMY_TYPES.BOSS) {
-            enemy.x += enemy.speed;
+            enemy.x += enemy.speed * (deltaTime / 16);
             if (enemy.x <= 0 || enemy.x + enemy.width >= CANVAS_WIDTH) {
                 enemy.speed = -enemy.speed;
             }
         } else {
-            enemy.x += enemy.speed;
+            enemy.x += enemy.speed * (deltaTime / 16);
             if (enemy.x <= 0 || enemy.x + ENEMY_WIDTH >= CANVAS_WIDTH) {
                 enemy.speed = -enemy.speed;
                 enemy.y += 10;
@@ -309,21 +358,21 @@ function drawMenuScreen() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     ctx.fillStyle = 'white';
-    ctx.font = '36px PrStart';
+    ctx.font = `${36 * scaleFactor}px PrStart`;
     ctx.textAlign = 'center';
-    ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, 100);
-    ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, 150);
+    ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, 100 * scaleFactor);
+    ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, 150 * scaleFactor);
 
-    ctx.font = '24px PrStart';
+    ctx.font = `${24 * scaleFactor}px PrStart`;
     ctx.fillStyle = selectedMenuOption === 0 ? 'yellow' : 'white';
-    ctx.fillText('Start', CANVAS_WIDTH / 2, 300);
+    ctx.fillText('Start', CANVAS_WIDTH / 2, 300 * scaleFactor);
     ctx.fillStyle = selectedMenuOption === 1 ? 'yellow' : 'white';
-    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 350);
+    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 350 * scaleFactor);
 
     ctx.fillStyle = 'white';
-    ctx.font = '16px PrStart';
-    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450);
-    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480);
+    ctx.font = `${16 * scaleFactor}px PrStart`;
+    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
+    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
 }
 
 // Draw difficulty select screen
@@ -332,20 +381,20 @@ function drawDifficultyScreen() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     ctx.fillStyle = 'white';
-    ctx.font = '36px PrStart';
+    ctx.font = `${36 * scaleFactor}px PrStart`;
     ctx.textAlign = 'center';
-    ctx.fillText('Select Difficulty', CANVAS_WIDTH / 2, 100);
+    ctx.fillText('Select Difficulty', CANVAS_WIDTH / 2, 100 * scaleFactor);
 
-    ctx.font = '24px PrStart';
+    ctx.font = `${24 * scaleFactor}px PrStart`;
     Object.values(DIFFICULTY).forEach((diff, index) => {
         ctx.fillStyle = diff === difficulty ? 'yellow' : 'white';
-        ctx.fillText(diff.label, CANVAS_WIDTH / 2, 250 + index * 50);
+        ctx.fillText(diff.label, CANVAS_WIDTH / 2, (250 + index * 50) * scaleFactor);
     });
 
     ctx.fillStyle = 'white';
-    ctx.font = '16px PrStart';
-    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450);
-    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480);
+    ctx.font = `${16 * scaleFactor}px PrStart`;
+    ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
+    ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
 }
 
 // Draw high scores screen
@@ -354,17 +403,17 @@ function drawHighScoresScreen() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     ctx.fillStyle = 'white';
-    ctx.font = '36px PrStart';
+    ctx.font = `${36 * scaleFactor}px PrStart`;
     ctx.textAlign = 'center';
-    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 100);
+    ctx.fillText('High Scores', CANVAS_WIDTH / 2, 100 * scaleFactor);
 
-    ctx.font = '18px PrStart';
+    ctx.font = `${18 * scaleFactor}px PrStart`;
     highScores.slice(0, 10).forEach((score, index) => {
-        ctx.fillText(`${index + 1}. ${score.name}: ${score.score}`, CANVAS_WIDTH / 2, 200 + index * 30);
+        ctx.fillText(`${index + 1}. ${score.name}: ${score.score}`, CANVAS_WIDTH / 2, (200 + index * 30) * scaleFactor);
     });
 
-    ctx.font = '16px PrStart';
-    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, 550);
+    ctx.font = `${16 * scaleFactor}px PrStart`;
+    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, 550 * scaleFactor);
 }
 
 // Check collisions between bullets and enemies
@@ -469,19 +518,18 @@ function drawGameplay() {
 
     // Draw score, level, and lives
     ctx.fillStyle = 'white';
-    ctx.font = '16px PrStart';
+    ctx.font = `${16 * scaleFactor}px PrStart`;
     ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${score}`, 50, 30);
+    ctx.fillText(`Score: ${score}`, 50 * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'right';
-    ctx.fillText(`Level: ${level}`, CANVAS_WIDTH - 50, 30);
+    ctx.fillText(`Level: ${level}`, (CANVAS_WIDTH - 50) * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'center';
-    ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30);
+    ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30 * scaleFactor);
 }
 
 // Game over
 function gameOver() {
     gameState = 'gameOver';
-    clearInterval(gameLoop);
 
     // Update high scores
     const playerName = prompt("Enter your name for the high score:");
@@ -497,16 +545,26 @@ function drawGameOverScreen() {
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     ctx.fillStyle = 'white';
-    ctx.font = '36px PrStart';
+    ctx.font = `${36 * scaleFactor}px PrStart`;
     ctx.textAlign = 'center';
-    ctx.fillText('Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+    ctx.fillText('Game Over', CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 - 50) * scaleFactor);
 
-    ctx.font = '24px PrStart';
-    ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
-    ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+    ctx.font = `${24 * scaleFactor}px PrStart`;
+    ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 10) * scaleFactor);
+    ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 50) * scaleFactor);
 
-    ctx.font = '18px PrStart';
-    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+    ctx.font = `${18 * scaleFactor}px PrStart`;
+    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 100) * scaleFactor);
+}
+
+// Game loop
+let lastTime = 0;
+function gameLoop(currentTime) {
+    const deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    update(deltaTime);
+    requestAnimationFrame(gameLoop);
 }
 
 // Start the game when the page loads
