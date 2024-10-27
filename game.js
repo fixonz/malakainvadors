@@ -14,11 +14,16 @@ let canvas, ctx;
 let player, enemies, bullets;
 let score, level;
 let gameLoop;
+let gameState = 'intro';
+let playerImage, enemyImage;
 
 // Initialize the game
 function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+
+    playerImage = document.getElementById('playerImage');
+    enemyImage = document.getElementById('enemyImage');
 
     player = {
         x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
@@ -33,8 +38,6 @@ function init() {
     score = 0;
     level = 1;
 
-    createEnemies();
-    
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
@@ -61,15 +64,26 @@ function createEnemies() {
 
 // Handle keydown events
 function handleKeyDown(e) {
-    if (e.key === 'ArrowLeft') player.moveLeft = true;
-    if (e.key === 'ArrowRight') player.moveRight = true;
-    if (e.key === ' ') shoot();
+    if (gameState === 'intro' && e.key === ' ') {
+        startGame();
+    } else if (gameState === 'playing') {
+        if (e.key === 'ArrowLeft') player.moveLeft = true;
+        if (e.key === 'ArrowRight') player.moveRight = true;
+        if (e.key === ' ') shoot();
+    }
 }
 
 // Handle keyup events
 function handleKeyUp(e) {
     if (e.key === 'ArrowLeft') player.moveLeft = false;
     if (e.key === 'ArrowRight') player.moveRight = false;
+}
+
+// Start the game
+function startGame() {
+    gameState = 'playing';
+    document.getElementById('intro').style.display = 'none';
+    createEnemies();
 }
 
 // Shoot a bullet
@@ -85,6 +99,21 @@ function shoot() {
 
 // Update game state
 function update() {
+    if (gameState === 'intro') {
+        // Draw intro screen
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillStyle = 'white';
+        ctx.font = '48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Malakai Cabal Invadooorz', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+        ctx.font = '24px Arial';
+        ctx.fillText('Press SPACE to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+        return;
+    }
+
+    if (gameState !== 'playing') return;
+
     // Move player
     if (player.moveLeft && player.x > 0) player.x -= player.speed;
     if (player.moveRight && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed;
@@ -154,13 +183,21 @@ function draw() {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // Draw player
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    if (playerImage.complete) {
+        ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    } else {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
 
     // Draw enemies
-    ctx.fillStyle = 'red';
     enemies.forEach(enemy => {
-        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        if (enemyImage.complete) {
+            ctx.drawImage(enemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
+        } else {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        }
     });
 
     // Draw bullets
@@ -170,7 +207,7 @@ function draw() {
     });
 
     // Draw score and level
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'white';
     ctx.font = '20px Arial';
     ctx.fillText(`Score: ${score}`, 10, 30);
     ctx.fillText(`Level: ${level}`, CANVAS_WIDTH - 100, 30);
@@ -178,10 +215,14 @@ function draw() {
 
 // Game over
 function gameOver(win) {
+    gameState = 'gameOver';
     clearInterval(gameLoop);
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'white';
     ctx.font = '40px Arial';
-    ctx.fillText(win ? 'You Win!' : 'Game Over', CANVAS_WIDTH / 2 - 100, CANVAS_HEIGHT / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(win ? 'You Win!' : 'Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+    ctx.font = '24px Arial';
+    ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
 }
 
 // Start the game when the page loads
