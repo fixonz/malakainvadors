@@ -12,7 +12,8 @@ const BULLET_HEIGHT = 15;
 const ENEMY_TYPES = {
     BASIC: 'basic',
     FAST: 'fast',
-    TOUGH: 'tough'
+    TOUGH: 'tough',
+    BOSS: 'boss'
 };
 
 // Game variables
@@ -21,7 +22,7 @@ let player, enemies, bullets;
 let score, level;
 let gameLoop;
 let gameState = 'intro';
-let playerImage, enemyImages;
+let playerImage, enemyImages, bossImage;
 let shootSound, hitSound;
 
 // Initialize the game
@@ -35,6 +36,7 @@ function init() {
         [ENEMY_TYPES.FAST]: document.getElementById('enemyFastImage'),
         [ENEMY_TYPES.TOUGH]: document.getElementById('enemyToughImage')
     };
+    bossImage = document.getElementById('bossImage');
     shootSound = document.getElementById('shootSound');
     hitSound = document.getElementById('hitSound');
 
@@ -55,7 +57,7 @@ function init() {
     document.addEventListener('keyup', handleKeyUp);
 
     // Ensure all images are loaded
-    const imagesToLoad = [playerImage, ...Object.values(enemyImages)];
+    const imagesToLoad = [playerImage, ...Object.values(enemyImages), bossImage];
     Promise.all(imagesToLoad.map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise(resolve => {
@@ -70,21 +72,29 @@ function init() {
 
 // Create enemies for the current level
 function createEnemies() {
-    const rows = 3 + Math.min(level - 1, 2);
-    const cols = 6 + Math.min(level - 1, 4);
+    if (level % 5 === 0) {
+        createBossLevel();
+    } else {
+        createRegularLevel();
+    }
+}
+
+function createRegularLevel() {
+    const rows = Math.min(3 + Math.floor(level / 3), 7);
+    const cols = Math.min(6 + Math.floor(level / 4), 12);
 
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
             let type = ENEMY_TYPES.BASIC;
-            let health = 1;
-            let speed = 1 + level * 0.5;
+            let health = 1 + Math.floor(level / 10);
+            let speed = 1 + (level * 0.1);
 
-            if (Math.random() < 0.2) {
+            if (Math.random() < 0.1 + (level * 0.01)) {
                 type = ENEMY_TYPES.FAST;
                 speed *= 1.5;
-            } else if (Math.random() < 0.1) {
+            } else if (Math.random() < 0.05 + (level * 0.005)) {
                 type = ENEMY_TYPES.TOUGH;
-                health = 3;
+                health *= 2;
                 speed *= 0.75;
             }
 
@@ -95,9 +105,33 @@ function createEnemies() {
                 height: ENEMY_HEIGHT,
                 speed: speed,
                 type: type,
-                health: health
+                health: health,
+                shootCooldown: type === ENEMY_TYPES.TOUGH ? Math.max(120 - level * 2, 30) : 0,
+                canShoot: type === ENEMY_TYPES.TOUGH
             });
         }
+    }
+}
+
+function createBossLevel() {
+    const bossHealth = 50 + (level * 10);
+    const bossSpeed = 2 + (level * 0.2);
+
+    enemies.push({
+        x: CANVAS_WIDTH / 2 - ENEMY_WIDTH * 2,
+        y: 50,
+        width: ENEMY_WIDTH * 4,
+        height: ENEMY_HEIGHT * 4,
+        speed: bossSpeed,
+        type: ENEMY_TYPES.BOSS,
+        health: bossHealth,
+        shootCooldown: 60,
+        canShoot: true
+    });
+
+    // Add some regular enemies to make it more challenging
+    for (let i = 0; i < 10; i++) {
+        createRegularLevel();
     }
 }
 
@@ -134,9 +168,36 @@ function shoot() {
         y: player.y,
         width: BULLET_WIDTH,
         height: BULLET_HEIGHT,
-        speed: 7
+        speed: 7,
+        isEnemyBullet: false
     });
     shootSound.play();
+}
+
+// Enemy shoot
+function enemyShoot(enemy) {
+    if (enemy.type === ENEMY_TYPES.BOSS) {
+        // Boss shoots 3 bullets in a spread
+        for (let i = -1; i <= 1; i++) {
+            bullets.push({
+                x: enemy.x + enemy.width / 2 + (i * 20),
+                y: enemy.y + enemy.height,
+                width: BULLET_WIDTH * 2,
+                height: BULLET_HEIGHT * 2,
+                speed: -6,
+                isEnemyBullet: true
+            });
+        }
+    } else {
+        bullets.push({
+            x: enemy.x + ENEMY_WIDTH / 2,
+            y: enemy.y + ENEMY_HEIGHT,
+            width: BULLET_WIDTH,
+            height: BULLET_HEIGHT,
+            speed: -5,
+            isEnemyBullet: true
+        });
+    }
 }
 
 // Update game state
@@ -155,15 +216,30 @@ function update() {
     // Move bullets
     bullets.forEach((bullet, index) => {
         bullet.y -= bullet.speed;
-        if (bullet.y + bullet.height < 0) bullets.splice(index, 1);
+        if (bullet.y + bullet.height < 0 || bullet.y > CANVAS_HEIGHT) bullets.splice(index, 1);
     });
 
     // Move enemies
     enemies.forEach(enemy => {
-        enemy.x += enemy.speed;
-        if (enemy.x <= 0 || enemy.x + ENEMY_WIDTH >= CANVAS_WIDTH) {
-            enemy.speed = -enemy.speed;
-            enemy.y += 10;
+        if (enemy.type === ENEMY_TYPES.BOSS) {
+            enemy.x += enemy.speed;
+            if (enemy.x <= 0 || enemy.x + enemy.width >= CANVAS_WIDTH) {
+                enemy.speed = -enemy.speed;
+            }
+        } else {
+            enemy.x += enemy.speed;
+            if (enemy.x <= 0 || enemy.x + ENEMY_WIDTH >= CANVAS_WIDTH) {
+                enemy.speed = -enemy.speed;
+                enemy.y += 10;
+            }
+        }
+
+        if (enemy.canShoot) {
+            enemy.shootCooldown--;
+            if (enemy.shootCooldown <= 0) {
+                enemyShoot(enemy);
+                enemy.shootCooldown = enemy.type === ENEMY_TYPES.BOSS ? 60 : Math.max(120 - level * 2, 30);
+            }
         }
     });
 
@@ -173,11 +249,7 @@ function update() {
     // Check if level is completed
     if (enemies.length === 0) {
         level++;
-        if (level > 4) {
-            gameOver(true);
-        } else {
-            createEnemies();
-        }
+        createEnemies();
     }
 
     // Draw everything
@@ -235,23 +307,38 @@ function drawIntro() {
 // Check collisions between bullets and enemies
 function checkCollisions() {
     bullets.forEach((bullet, bulletIndex) => {
-        enemies.forEach((enemy, enemyIndex) => {
+        if (bullet.isEnemyBullet) {
+            // Check collision with player
             if (
-                bullet.x < enemy.x + enemy.width &&
-                bullet.x + bullet.width > enemy.x &&
-                bullet.y < enemy.y + enemy.height &&
-                bullet.y + bullet.height > enemy.y
+                bullet.x < player.x + player.width &&
+                bullet.x + bullet.width > player.x &&
+                bullet.y < player.y + player.height &&
+                bullet.y + bullet.height > player.y
             ) {
                 bullets.splice(bulletIndex, 1);
-                enemy.health--;
-                if (enemy.health <= 0) {
-                    enemies.splice(enemyIndex, 1);
-                    score += enemy.type === ENEMY_TYPES.FAST ? 15 :
-                             enemy.type === ENEMY_TYPES.TOUGH ? 20 : 10;
-                }
-                hitSound.play();
+                gameOver(false);
             }
-        });
+        } else {
+            // Check collision with enemies
+            enemies.forEach((enemy, enemyIndex) => {
+                if (
+                    bullet.x < enemy.x + enemy.width &&
+                    bullet.x + bullet.width > enemy.x &&
+                    bullet.y < enemy.y + enemy.height &&
+                    bullet.y + bullet.height > enemy.y
+                ) {
+                    bullets.splice(bulletIndex, 1);
+                    enemy.health--;
+                    if (enemy.health <= 0) {
+                        enemies.splice(enemyIndex, 1);
+                        score += enemy.type === ENEMY_TYPES.FAST ? 15 :
+                                 enemy.type === ENEMY_TYPES.TOUGH ? 20 :
+                                 enemy.type === ENEMY_TYPES.BOSS ? 100 : 10;
+                    }
+                    hitSound.play();
+                }
+            });
+        }
     });
 
     // Check if enemies reached the player
@@ -277,19 +364,34 @@ function draw() {
 
     // Draw enemies
     enemies.forEach(enemy => {
-        const enemyImage = enemyImages[enemy.type];
+        const enemyImage = enemy.type === ENEMY_TYPES.BOSS ? bossImage : enemyImages[enemy.type];
         if (enemyImage && enemyImage.complete) {
             ctx.drawImage(enemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
         } else {
-            ctx.fillStyle = enemy.type === ENEMY_TYPES.FAST ? 'green' : 
+            ctx.fillStyle = enemy.type === ENEMY_TYPES.BOSS ? 'gold' :
+                            enemy.type === ENEMY_TYPES.FAST ? 'green' : 
                             enemy.type === ENEMY_TYPES.TOUGH ? 'purple' : 'red';
             ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+
+        // Draw health bar for boss
+        if (enemy.type === ENEMY_TYPES.BOSS) {
+            const healthPercentage = enemy.health / (50 + (level * 10));
+            ctx.fillStyle = 'red';
+            ctx.fillRect(enemy.x, enemy.y - 10, enemy.width, 5);
+            ctx.fillStyle = 'green';
+            ctx.fillRect(enemy.x, enemy.y - 10, enemy.width * healthPercentage, 5);
         }
     });
 
     // Draw bullets
     ctx.fillStyle = 'yellow';
     bullets.forEach(bullet => {
+        if (bullet.isEnemyBullet) {
+            ctx.fillStyle = 'red';
+        } else {
+            ctx.fillStyle = 'yellow';
+        }
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
 
@@ -304,15 +406,22 @@ function draw() {
 
 // Game over
 function gameOver(win) {
+    if (win) {
+        level++;
+        createEnemies();
+        return;
+    }
+
     gameState = 'gameOver';
     clearInterval(gameLoop);
     ctx.fillStyle = 'white';
     ctx.font = '24px PrStart';
     ctx.textAlign = 'center';
-    ctx.fillText(win ? 'You Win!' : 'Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+    ctx.fillText('Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
     ctx.font = '16px PrStart';
     ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+    ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+    ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 }
 
 // Start the game when the page loads
