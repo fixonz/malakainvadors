@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Malakai Cabal Invadooorz</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
@@ -11,17 +11,27 @@
             src: url('PrStart.ttf') format('truetype');
         }
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 0;
             background-color: #000;
             font-family: 'PrStart', sans-serif;
             color: white;
+            overflow: hidden;
+        }
+        #gameContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         canvas {
-            border: 1px solid white;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
         #loading {
             position: absolute;
@@ -31,16 +41,42 @@
             font-size: 24px;
             text-align: center;
         }
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-around;
+        }
+        .mobileButton {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
-    <div id="loading">Loading game assets...</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameContainer">
+        <div id="loading">Loading game assets...</div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="mobileControls">
+            <div id="leftButton" class="mobileButton">←</div>
+            <div id="fireButton" class="mobileButton">🔥</div>
+            <div id="rightButton" class="mobileButton">→</div>
+        </div>
+    </div>
     <img id="playerImage" src="player.png" style="display: none;">
     <img id="enemyBasicImage" src="enemy_basic.png" style="display: none;">
     <img id="enemyFastImage" src="enemy_fast.png" style="display: none;">
     <img id="enemyToughImage" src="enemy_tough.png" style="display: none;">
-    <audio id="shootSound" src="shoot.mp3"></audio>
+    <audio id="shootSound" src="shoot.wav"></audio>
     <audio id="hitSound" src="hit.wav"></audio>
     <noscript>
         <p>JavaScript is required to play this game. Please enable JavaScript in your browser settings.</p>
