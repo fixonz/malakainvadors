@@ -16,14 +16,22 @@ const ENEMY_TYPES = {
     BOSS: 'boss'
 };
 
+// Difficulty levels
+const DIFFICULTY = {
+    EASY: { label: 'Easy', multiplier: 1 },
+    MEDIUM: { label: 'Medium', multiplier: 1.5 },
+    HARD: { label: 'Hard', multiplier: 2 }
+};
+
 // Game variables
 let canvas, ctx;
 let player, enemies, bullets;
-let score, level;
+let score, highScores, level, lives;
 let gameLoop;
-let gameState = 'intro';
-let playerImage, enemyImages, bossImage;
+let gameState = 'start';
+let playerImage, enemyImages;
 let shootSound, hitSound;
+let difficulty = DIFFICULTY.MEDIUM;
 
 // Initialize the game
 function init() {
@@ -36,7 +44,6 @@ function init() {
         [ENEMY_TYPES.FAST]: document.getElementById('enemyFastImage'),
         [ENEMY_TYPES.TOUGH]: document.getElementById('enemyToughImage')
     };
-    bossImage = document.getElementById('bossImage');
     shootSound = document.getElementById('shootSound');
     hitSound = document.getElementById('hitSound');
 
@@ -52,12 +59,15 @@ function init() {
     bullets = [];
     score = 0;
     level = 1;
+    lives = 3;
+
+    highScores = JSON.parse(localStorage.getItem('highScores')) || [];
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
     // Ensure all images are loaded
-    const imagesToLoad = [playerImage, ...Object.values(enemyImages), bossImage];
+    const imagesToLoad = [playerImage, ...Object.values(enemyImages)];
     Promise.all(imagesToLoad.map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise(resolve => {
@@ -87,7 +97,7 @@ function createRegularLevel() {
         for (let j = 0; j < cols; j++) {
             let type = ENEMY_TYPES.BASIC;
             let health = 1 + Math.floor(level / 10);
-            let speed = 1 + (level * 0.1);
+            let speed = (1 + (level * 0.1)) * difficulty.multiplier;
 
             if (Math.random() < 0.1 + (level * 0.01)) {
                 type = ENEMY_TYPES.FAST;
@@ -115,13 +125,14 @@ function createRegularLevel() {
 
 function createBossLevel() {
     const bossHealth = 50 + (level * 10);
-    const bossSpeed = 2 + (level * 0.2);
+    const bossSpeed = (2 + (level * 0.2)) * difficulty.multiplier;
+    const bossSize = 2 + Math.min(level / 10, 3); // Boss size increases with level, max 5x
 
     enemies.push({
-        x: CANVAS_WIDTH / 2 - ENEMY_WIDTH * 2,
+        x: CANVAS_WIDTH / 2 - (ENEMY_WIDTH * bossSize) / 2,
         y: 50,
-        width: ENEMY_WIDTH * 4,
-        height: ENEMY_HEIGHT * 4,
+        width: ENEMY_WIDTH * bossSize,
+        height: ENEMY_HEIGHT * bossSize,
         speed: bossSpeed,
         type: ENEMY_TYPES.BOSS,
         health: bossHealth,
@@ -129,23 +140,26 @@ function createBossLevel() {
         canShoot: true
     });
 
-    // Add some regular enemies to make it more challenging
-    for (let i = 0; i < 10; i++) {
+    // Add small ships around the boss
+    for (let i = 0; i < 5; i++) {
         createRegularLevel();
     }
 }
 
 // Handle keydown events
 function handleKeyDown(e) {
-    if (gameState === 'intro' && e.key === ' ') {
-        startGame();
+    if (gameState === 'start') {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            changeDifficulty(e.key === 'ArrowUp' ? -1 : 1);
+        } else if (e.key === ' ') {
+            startGame();
+        }
     } else if (gameState === 'playing') {
         if (e.key === 'ArrowLeft') player.moveLeft = true;
         if (e.key === 'ArrowRight') player.moveRight = true;
         if (e.key === ' ') shoot();
     } else if (gameState === 'gameOver' && e.key === ' ') {
-        init();
-        startGame();
+        gameState = 'start';
     }
 }
 
@@ -155,9 +169,20 @@ function handleKeyUp(e) {
     if (e.key === 'ArrowRight') player.moveRight = false;
 }
 
+// Change difficulty
+function changeDifficulty(direction) {
+    const difficulties = Object.values(DIFFICULTY);
+    let index = difficulties.findIndex(d => d === difficulty);
+    index = (index + direction + difficulties.length) % difficulties.length;
+    difficulty = difficulties[index];
+}
+
 // Start the game
 function startGame() {
     gameState = 'playing';
+    score = 0;
+    level = 1;
+    lives = 3;
     createEnemies();
 }
 
@@ -202,8 +227,8 @@ function enemyShoot(enemy) {
 
 // Update game state
 function update() {
-    if (gameState === 'intro') {
-        drawIntro();
+    if (gameState === 'start') {
+        drawStartScreen();
         return;
     }
 
@@ -256,52 +281,33 @@ function update() {
     draw();
 }
 
-// Draw intro screen
-function drawIntro() {
-    // Clear canvas
+// Draw start screen
+function drawStartScreen() {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw title
     ctx.fillStyle = 'white';
     ctx.font = '36px PrStart';
     ctx.textAlign = 'center';
     ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, 100);
     ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, 150);
 
-    // Draw player ship
-    if (playerImage.complete) {
-        ctx.drawImage(playerImage, CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - 150, PLAYER_WIDTH, PLAYER_HEIGHT);
-    } else {
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - 150, PLAYER_WIDTH, PLAYER_HEIGHT);
-    }
+    ctx.font = '24px PrStart';
+    ctx.fillText('Select Difficulty:', CANVAS_WIDTH / 2, 250);
 
-    // Draw enemy ships
-    const enemyY = 250;
-    const enemySpacing = 120;
-    Object.values(enemyImages).forEach((img, index) => {
-        if (img && img.complete) {
-            ctx.drawImage(img, CANVAS_WIDTH / 2 - ENEMY_WIDTH / 2 + (index - 1) * enemySpacing, enemyY, ENEMY_WIDTH, ENEMY_HEIGHT);
-        } else {
-            ctx.fillStyle = ['red', 'green', 'purple'][index];
-            ctx.fillRect(CANVAS_WIDTH / 2 - ENEMY_WIDTH / 2 + (index - 1) * enemySpacing, enemyY, ENEMY_WIDTH, ENEMY_HEIGHT);
-        }
+    Object.values(DIFFICULTY).forEach((diff, index) => {
+        ctx.fillStyle = diff === difficulty ? 'yellow' : 'white';
+        ctx.fillText(diff.label, CANVAS_WIDTH / 2, 300 + index * 40);
     });
 
-    // Draw instructions
     ctx.fillStyle = 'white';
     ctx.font = '16px PrStart';
-    ctx.fillText('Press SPACE to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 50);
+    ctx.fillText('Press SPACE to start', CANVAS_WIDTH / 2, 450);
 
-    // Add some animation
-    const time = Date.now() * 0.001; // Convert to seconds
-    ctx.fillStyle = 'yellow';
-    for (let i = 0; i < 50; i++) {
-        const x = Math.sin(i * 0.5 + time) * CANVAS_WIDTH / 2 + CANVAS_WIDTH / 2;
-        const y = Math.cos(i * 0.5 + time) * CANVAS_HEIGHT / 2 + CANVAS_HEIGHT / 2;
-        ctx.fillRect(x, y, 2, 2);
-    }
+    ctx.fillText('High Scores:', CANVAS_WIDTH / 2, 500);
+    highScores.slice(0, 5).forEach((score, index) => {
+        ctx.fillText(`${index + 1}. ${score}`, CANVAS_WIDTH / 2, 530 + index * 30);
+    });
 }
 
 // Check collisions between bullets and enemies
@@ -316,7 +322,10 @@ function checkCollisions() {
                 bullet.y + bullet.height > player.y
             ) {
                 bullets.splice(bulletIndex, 1);
-                gameOver(false);
+                lives--;
+                if (lives <= 0) {
+                    gameOver();
+                }
             }
         } else {
             // Check collision with enemies
@@ -331,9 +340,9 @@ function checkCollisions() {
                     enemy.health--;
                     if (enemy.health <= 0) {
                         enemies.splice(enemyIndex, 1);
-                        score += enemy.type === ENEMY_TYPES.FAST ? 15 :
-                                 enemy.type === ENEMY_TYPES.TOUGH ? 20 :
-                                 enemy.type === ENEMY_TYPES.BOSS ? 100 : 10;
+                        score += (enemy.type === ENEMY_TYPES.FAST ? 15 :
+                                  enemy.type === ENEMY_TYPES.TOUGH ? 20 :
+                                  enemy.type === ENEMY_TYPES.BOSS ? 100 : 10) * difficulty.multiplier;
                     }
                     hitSound.play();
                 }
@@ -344,7 +353,13 @@ function checkCollisions() {
     // Check if enemies reached the player
     enemies.forEach(enemy => {
         if (enemy.y + enemy.height >= player.y) {
-            gameOver(false);
+            lives--;
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                enemies = [];
+                createEnemies();
+            }
         }
     });
 }
@@ -364,7 +379,7 @@ function draw() {
 
     // Draw enemies
     enemies.forEach(enemy => {
-        const enemyImage = enemy.type === ENEMY_TYPES.BOSS ? bossImage : enemyImages[enemy.type];
+        const enemyImage = enemyImages[enemy.type] || enemyImages[ENEMY_TYPES.BASIC];
         if (enemyImage && enemyImage.complete) {
             ctx.drawImage(enemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
         } else {
@@ -395,25 +410,28 @@ function draw() {
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
 
-    // Draw score and level
+    // Draw score, level, and lives
     ctx.fillStyle = 'white';
     ctx.font = '16px PrStart';
     ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 50, 30);
     ctx.textAlign = 'right';
     ctx.fillText(`Level: ${level}`, CANVAS_WIDTH - 50, 30);
+    ctx.textAlign = 'center';
+    ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30);
 }
 
 // Game over
-function gameOver(win) {
-    if (win) {
-        level++;
-        createEnemies();
-        return;
-    }
-
+function gameOver() {
     gameState = 'gameOver';
     clearInterval(gameLoop);
+
+    // Update high scores
+    highScores.push(score);
+    highScores.sort((a, b) => b - a);
+    highScores = highScores.slice(0, 5);
+    localStorage.setItem('highScores', JSON.stringify(highScores));
+
     ctx.fillStyle = 'white';
     ctx.font = '24px PrStart';
     ctx.textAlign = 'center';
@@ -421,7 +439,7 @@ function gameOver(win) {
     ctx.font = '16px PrStart';
     ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-    ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+    ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 }
 
 // Start the game when the page loads
