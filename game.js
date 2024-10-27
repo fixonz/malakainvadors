@@ -7,6 +7,8 @@ const ENEMY_WIDTH = 40;
 const ENEMY_HEIGHT = 30;
 const BULLET_WIDTH = 3;
 const BULLET_HEIGHT = 15;
+const BARRIER_WIDTH = 60;
+const BARRIER_HEIGHT = 20;
 
 // Enemy types
 const ENEMY_TYPES = {
@@ -43,7 +45,7 @@ const POWER_UP_TYPES = {
 
 // Game variables
 let canvas, ctx;
-let player, enemies, bullets, powerUps;
+let player, enemies, bullets, powerUps, barriers;
 let score, highScores, level, lives;
 let gameState = 'menu';
 let playerImage, enemyImages;
@@ -102,6 +104,10 @@ function init() {
     enemies = [];
     bullets = [];
     powerUps = [];
+    barriers = [
+        { x: CANVAS_WIDTH / 4 - BARRIER_WIDTH / 2, y: CANVAS_HEIGHT - 100, width: BARRIER_WIDTH, height: BARRIER_HEIGHT },
+        { x: CANVAS_WIDTH * 3/4 - BARRIER_WIDTH / 2, y: CANVAS_HEIGHT - 100, width: BARRIER_WIDTH, height: BARRIER_HEIGHT }
+    ];
     score = 0;
     level = 1;
     lives = 3;
@@ -210,9 +216,10 @@ function createRegularLevel() {
         });
     }
 }
+
 function createBossLevel() {
-    const bossHealth = 50 + (level * 10);
-    const bossSpeed = (2 + (level * 0.1)) * difficulty.multiplier;
+    const bossHealth = 50 + (level * 5);
+    const bossSpeed = (1 + (level * 0.05)) * difficulty.multiplier;
     const bossSize = 2 + Math.min(level / 20, 3); // Boss size increases with level, max 5x
 
     enemies.push({
@@ -223,16 +230,17 @@ function createBossLevel() {
         speed: bossSpeed,
         type: ENEMY_TYPES.BOSS,
         health: bossHealth,
-        shootCooldown: 60,
+        shootCooldown: 120,
         canShoot: true,
         movementPattern: MOVEMENT_PATTERNS.LINEAR
     });
 
     // Add a few regular enemies
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
         createRegularLevel();
     }
 }
+
 // Handle keydown events
 function handleKeyDown(e) {
     if (isMobile) return; // Ignore keyboard events on mobile devices
@@ -339,7 +347,7 @@ function enemyShoot(enemy) {
                 y: enemy.y + enemy.height,
                 width: BULLET_WIDTH * 2,
                 height: BULLET_HEIGHT * 2,
-                speed: -6,
+                speed: -4,
                 isEnemyBullet: true
             });
         }
@@ -461,7 +469,7 @@ function updateGameplay(deltaTime) {
             enemy.shootCooldown--;
             if (enemy.shootCooldown <= 0) {
                 enemyShoot(enemy);
-                enemy.shootCooldown = enemy.type === ENEMY_TYPES.BOSS ? 60 : Math.max(120 - level * 2, 30);
+                enemy.shootCooldown = enemy.type === ENEMY_TYPES.BOSS ? 120 : Math.max(120 - level * 2, 30);
             }
         }
     });
@@ -530,35 +538,11 @@ function drawMenuScreen(deltaTime) {
     ctx.textAlign = 'center';
     ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, titleY * scaleFactor);
     ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, (titleY + 50) * scaleFactor);
-    
+
     // Fade in options
     optionsOpacity += 0.02 * (deltaTime / 16);
     if (optionsOpacity > 1) optionsOpacity = 1;
-        // Draw player ship
-    if (playerImage.complete) {
-        ctx.drawImage(playerImage, CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
-    } else {
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
-    }
 
-    // Draw some enemy ships
-    const enemyTypes = [ENEMY_TYPES.BASIC, ENEMY_TYPES.FAST, ENEMY_TYPES.TOUGH, ENEMY_TYPES.ZIGZAG, ENEMY_TYPES.CIRCULAR, ENEMY_TYPES.DIVING];
-    enemyTypes.forEach((type, index) => {
-        const x = (CANVAS_WIDTH / (enemyTypes.length + 1)) * (index + 1);
-        const y = CANVAS_HEIGHT - 150;
-        const enemyImage = enemyImages[type];
-        if (enemyImage && enemyImage.complete) {
-            ctx.drawImage(enemyImage, x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
-        } else {
-            ctx.fillStyle = type === ENEMY_TYPES.FAST ? 'green' : 
-                            type === ENEMY_TYPES.TOUGH ? 'purple' :
-                            type === ENEMY_TYPES.ZIGZAG ? 'orange' :
-                            type === ENEMY_TYPES.CIRCULAR ? 'cyan' :
-                            type === ENEMY_TYPES.DIVING ? 'magenta' : 'red';
-            ctx.fillRect(x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
-        }
-    });
     ctx.globalAlpha = optionsOpacity;
     ctx.font = `${24 * scaleFactor}px PrStart`;
     ctx.fillStyle = selectedMenuOption === 0 ? 'yellow' : 'white';
@@ -571,6 +555,32 @@ function drawMenuScreen(deltaTime) {
     ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
     ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
     ctx.globalAlpha = 1;
+
+    // Draw player ship
+    if (playerImage.complete) {
+        ctx.drawImage(playerImage, CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
+    } else {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
+    }
+
+    // Draw some enemy ships
+    const enemyTypes = [ENEMY_TYPES.BASIC, ENEMY_TYPES.FAST, ENEMY_TYPES.TOUGH, ENEMY_TYPES.ZIGZAG, ENEMY_TYPES.CIRCULAR, ENEMY_TYPES.DIVING];
+    enemyTypes.forEach((type, index) => {
+        const x = (CANVAS_WIDTH / (enemyTypes.length + 1)) * (index + 1);
+        const y = CANVAS_HEIGHT - 150 + Math.sin(Date.now() / 500 + index) * 20; // Add movement
+        const enemyImage = enemyImages[type];
+        if (enemyImage && enemyImage.complete) {
+            ctx.drawImage(enemyImage, x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
+        } else {
+            ctx.fillStyle = type === ENEMY_TYPES.FAST ? 'green' : 
+                            type === ENEMY_TYPES.TOUGH ? 'purple' :
+                            type === ENEMY_TYPES.ZIGZAG ? 'orange' :
+                            type === ENEMY_TYPES.CIRCULAR ? 'cyan' :
+                            type === ENEMY_TYPES.DIVING ? 'magenta' : 'red';
+            ctx.fillRect(x - ENEMY_WIDTH / 2, y, ENEMY_WIDTH, ENEMY_HEIGHT);
+        }
+    });
 }
 
 // Draw difficulty select screen
@@ -633,6 +643,21 @@ function checkCollisions() {
                     }
                 }
             }
+            // Check collision with barriers
+            barriers.forEach((barrier, barrierIndex) => {
+                if (
+                    bullet.x < barrier.x + barrier.width &&
+                    bullet.x + bullet.width > barrier.x &&
+                    bullet.y < barrier.y + barrier.height &&
+                    bullet.y + bullet.height > barrier.y
+                ) {
+                    bullets.splice(bulletIndex, 1);
+                    barriers[barrierIndex].health--;
+                    if (barriers[barrierIndex].health <= 0) {
+                        barriers.splice(barrierIndex, 1);
+                    }
+                }
+            });
         } else {
             // Check collision with enemies
             enemies.forEach((enemy, enemyIndex) => {
@@ -707,9 +732,10 @@ function drawGameplay() {
                             enemy.type === ENEMY_TYPES.DIVING ? 'magenta' : 'red';
             ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
         }
-                    // Draw health bar for boss
+
+        // Draw health bar for boss
         if (enemy.type === ENEMY_TYPES.BOSS) {
-            const healthPercentage = enemy.health / (50 + (level * 10));
+            const healthPercentage = enemy.health / (50 + (level * 5));
             ctx.fillStyle = 'red';
             ctx.fillRect(enemy.x, enemy.y - 10, enemy.width, 5);
             ctx.fillStyle = 'green';
@@ -724,28 +750,32 @@ function drawGameplay() {
             ctx.fillStyle = 'red';
         } else {
             ctx.fillStyle = 'yellow';
-        }
-        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     });
 
     // Draw power-ups
-        powerUps.forEach(powerUp => {
-            ctx.font = `${30 * scaleFactor}px Arial`;
-            ctx.fillText(
-                powerUp.type === POWER_UP_TYPES.SHIELD ? '🛡️' :
-                powerUp.type === POWER_UP_TYPES.RAPID_FIRE ? '🔥' : '❤️',
-                powerUp.x, powerUp.y + 30
-            );    
-        });
-    
+    powerUps.forEach(powerUp => {
+        ctx.font = `${30 * scaleFactor}px Arial`;
+        ctx.fillText(
+            powerUp.type === POWER_UP_TYPES.SHIELD ? '🛡️' :
+            powerUp.type === POWER_UP_TYPES.RAPID_FIRE ? '🔥' : '❤️',
+            powerUp.x, powerUp.y + 30
+        );
+    });
+
+    // Draw barriers
+    ctx.fillStyle = 'gray';
+    barriers.forEach(barrier => {
+        ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+    });
 
     // Draw score, level, and lives
     ctx.fillStyle = 'white';
     ctx.font = `${16 * scaleFactor}px PrStart`;
     ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${score}`, 50 * scaleFactor, 30 * scaleFactor);
+    ctx.fillText(`Score: ${score}`, 20 * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'right';
-ctx.fillText(`Level: ${level}`, (CANVAS_WIDTH - 20) * scaleFactor, 30 * scaleFactor);
+    ctx.fillText(`Level: ${level}`, (CANVAS_WIDTH - 20) * scaleFactor, 30 * scaleFactor);
     ctx.textAlign = 'center';
     ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30 * scaleFactor);
 
