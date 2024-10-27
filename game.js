@@ -3,10 +3,10 @@
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 const PLAYER_WIDTH = 50;
-const PLAYER_HEIGHT = 40;
-const ENEMY_WIDTH = 38;
+const PLAYER_HEIGHT = 30;
+const ENEMY_WIDTH = 40;
 const ENEMY_HEIGHT = 30;
-const BULLET_WIDTH = 2;
+const BULLET_WIDTH = 3;
 const BULLET_HEIGHT = 10;
 
 // Game variables
@@ -16,6 +16,7 @@ let score, level;
 let gameLoop;
 let gameState = 'intro';
 let playerImage, enemyImage;
+let shootSound, hitSound;
 
 // Initialize the game
 function init() {
@@ -24,6 +25,8 @@ function init() {
 
     playerImage = document.getElementById('playerImage');
     enemyImage = document.getElementById('enemyImage');
+    shootSound = document.getElementById('shootSound');
+    hitSound = document.getElementById('hitSound');
 
     player = {
         x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
@@ -42,6 +45,11 @@ function init() {
     document.addEventListener('keyup', handleKeyUp);
 
     gameLoop = setInterval(update, 1000 / 60); // 60 FPS
+
+    // Load font
+    document.fonts.load('10pt "PrStart"').then(() => {
+        draw();
+    });
 }
 
 // Create enemies for the current level
@@ -70,6 +78,9 @@ function handleKeyDown(e) {
         if (e.key === 'ArrowLeft') player.moveLeft = true;
         if (e.key === 'ArrowRight') player.moveRight = true;
         if (e.key === ' ') shoot();
+    } else if (gameState === 'gameOver' && e.key === ' ') {
+        init();
+        startGame();
     }
 }
 
@@ -82,7 +93,6 @@ function handleKeyUp(e) {
 // Start the game
 function startGame() {
     gameState = 'playing';
-    document.getElementById('intro').style.display = 'none';
     createEnemies();
 }
 
@@ -95,6 +105,7 @@ function shoot() {
         height: BULLET_HEIGHT,
         speed: 7
     });
+    shootSound.play();
 }
 
 // Update game state
@@ -104,10 +115,10 @@ function update() {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         ctx.fillStyle = 'white';
-        ctx.font = '48px Arial';
+        ctx.font = '24px PrStart';
         ctx.textAlign = 'center';
         ctx.fillText('Malakai Cabal Invadooorz', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
-        ctx.font = '24px Arial';
+        ctx.font = '16px PrStart';
         ctx.fillText('Press SPACE to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
         return;
     }
@@ -165,6 +176,7 @@ function checkCollisions() {
                 bullets.splice(bulletIndex, 1);
                 enemies.splice(enemyIndex, 1);
                 score += 10;
+                hitSound.play();
             }
         });
     });
@@ -208,9 +220,11 @@ function draw() {
 
     // Draw score and level
     ctx.fillStyle = 'white';
-    ctx.font = '20px Arial';
-    ctx.fillText(`Score: ${score}`, 10, 30);
-    ctx.fillText(`Level: ${level}`, CANVAS_WIDTH - 100, 30);
+    ctx.font = '16px PrStart';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${score}`, 50, 30);
+    ctx.textAlign = 'right';
+    ctx.fillText(`Level: ${level}`, CANVAS_WIDTH - 50, 30);
 }
 
 // Game over
@@ -218,10 +232,10 @@ function gameOver(win) {
     gameState = 'gameOver';
     clearInterval(gameLoop);
     ctx.fillStyle = 'white';
-    ctx.font = '40px Arial';
+    ctx.font = '24px PrStart';
     ctx.textAlign = 'center';
     ctx.fillText(win ? 'You Win!' : 'Game Over', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    ctx.font = '24px Arial';
+    ctx.font = '16px PrStart';
     ctx.fillText('Press SPACE to restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
 }
 
