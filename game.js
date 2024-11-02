@@ -332,7 +332,7 @@ function drawDifficultyScreen() {
     ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
     ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
 }
-
+    
 // Draw high scores screen
 function drawHighScoresScreen() {
     ctx.fillStyle = 'black';
@@ -363,11 +363,11 @@ function checkCollisions() {
                 bullet.y < player.y + player.height &&
                 bullet.y + bullet.height > player.y
             ) {
-                bullets.splice(bulletIndex, 1);
+                bullets.splice(bulletIndex, 1); // Remove the bullet
                 if (!player.shielded) {
-                    lives--;
+                    lives--; // Reduce lives if not shielded
                     if (lives <= 0) {
-                        gameOver();
+                        gameOver(); // Trigger game over if lives reach zero
                     }
                 }
             }
@@ -379,10 +379,10 @@ function checkCollisions() {
                     bullet.y < barrier.y + barrier.height &&
                     bullet.y + bullet.height > barrier.y
                 ) {
-                    bullets.splice(bulletIndex, 1);
-                    barriers[barrierIndex].health--;
-                    if (barriers[barrierIndex].health <= 0) {
-                        barriers.splice(barrierIndex, 1);
+                    bullets.splice(bulletIndex, 1); // Remove the bullet
+                    barrier.health--; // Reduce barrier health
+                    if (barrier.health <= 0) {
+                        barriers.splice(barrierIndex, 1); // Remove barrier if health is zero
                     }
                 }
             });
@@ -395,15 +395,15 @@ function checkCollisions() {
                     bullet.y < enemy.y + enemy.height &&
                     bullet.y + bullet.height > enemy.y
                 ) {
-                    bullets.splice(bulletIndex, 1);
-                    enemy.health--;
+                    bullets.splice(bulletIndex, 1); // Remove the bullet
+                    enemy.health--; // Reduce enemy health
                     if (enemy.health <= 0) {
-                        enemies.splice(enemyIndex, 1);
+                        enemies.splice(enemyIndex, 1); // Remove enemy if health is zero
                         score += (enemy.type === ENEMY_TYPES.FAST ? 15 :
                                   enemy.type === ENEMY_TYPES.TOUGH ? 20 :
-                                  enemy.type === ENEMY_TYPES.BOSS ? 100 : 10) * difficulty.multiplier;
+                                  enemy.type === ENEMY_TYPES.BOSS ? 100 : 10) * difficulty.multiplier; // Update score
                     }
-                    hitSound.play();
+                    hitSound.play(); // Play hit sound
                 }
             });
         }
@@ -412,12 +412,12 @@ function checkCollisions() {
     // Check if enemies reached the player
     enemies.forEach(enemy => {
         if (enemy.y + enemy.height >= player.y) {
-            lives--;
+            lives--; // Reduce lives if enemy reaches player
             if (lives <= 0) {
-                gameOver();
+                gameOver(); // Trigger game over if lives reach zero
             } else {
-                enemies = [];
-                createEnemies();
+                enemies = []; // Clear enemies for the next wave
+                createEnemies(); // Create new enemies
             }
         }
     });
