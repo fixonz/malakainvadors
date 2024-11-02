@@ -744,12 +744,12 @@ enemies.forEach(enemy => {
 });
 
     // Draw bullets
-ctx.fillStyle = 'yellow';
+ctx.fillStyle = 'green';
 bullets.forEach(bullet => {
     if (bullet.isEnemyBullet) {
         ctx.fillStyle = 'red';
     } else {
-        ctx.fillStyle = 'yellow';
+        ctx.fillStyle = 'green';
     }
     ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
 });
