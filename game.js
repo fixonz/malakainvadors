@@ -536,7 +536,7 @@ if (titleY < 100 && titleVelocity < 0) {
 ctx.fillStyle = 'white';
 ctx.font = `${36 * scaleFactor}px PrStart`;
 ctx.textAlign = 'center';
-ctx.fillText('mondo Cabal', CANVAS_WIDTH / 2, titleY * scaleFactor);
+ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, titleY * scaleFactor);
 ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, (titleY + 50) * scaleFactor);
 
 // Fade in options
