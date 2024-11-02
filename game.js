@@ -245,7 +245,6 @@ function drawGameplay() {
 
     // Draw everything
     drawGameplay();
-}
 
 // Draw menu screen
 function drawMenuScreen(deltaTime) {
