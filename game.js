@@ -1,4 +1,3 @@
-add bulletImage
 // Game constants
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
