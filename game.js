@@ -139,15 +139,16 @@ function resizeCanvas() {
     } else {
         newWidth = containerWidth;
         newHeight = newWidth / aspectRatio;
+    }
 
-    canvas.style.width = ${newWidth}px;
-    canvas.style.height = ${newHeight}px;
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+    // Set the canvas dimensions
+    canvas.style.width = `${newWidth}px`; // Corrected template literal
+    canvas.style.height = `${newHeight}px`; // Corrected template literal
+    canvas.width = newWidth; // Update the canvas width
+    canvas.height = newHeight; // Update the canvas height
 
-    scaleFactor = newWidth / CANVAS_WIDTH;
+    scaleFactor = newWidth / CANVAS_WIDTH; // Update the scale factor
 }
-
 // Create enemies for the current level
 function createEnemies() {
     if (level % 10 === 0) {
