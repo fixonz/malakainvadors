@@ -139,7 +139,6 @@ function resizeCanvas() {
     } else {
         newWidth = containerWidth;
         newHeight = newWidth / aspectRatio;
-    }
 
     canvas.style.width = ${newWidth}px;
     canvas.style.height = ${newHeight}px;
