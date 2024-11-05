@@ -35,7 +35,6 @@ EASY: { label: 'Easy', multiplier: 1 },
 MEDIUM: { label: 'Medium', multiplier: 1.5 },
 HARD: { label: 'Hard', multiplier: 2 }
 };
-
 // Power-up types
 const POWER_UP_TYPES = {
 SHIELD: 'shield',
@@ -44,40 +43,17 @@ EXTRA_LIFE: 'extraLife'
 };
 
 // Game variables
-let canvas, ctx;
-let player, enemies, bullets, powerUps, barriers;
-let score, highScores, level, lives;
-let gameState = 'menu';
-let playerImage, enemyImages;
-let shootSound, hitSound, powerUpSound;
-let difficulty = DIFFICULTY.MEDIUM;
-let selectedMenuOption = 0;
-let isMobile = false;
-let scaleFactor = 1;
-let lastTime = 0;
-
-// Animation variables
-let titleY = -50;
-let titleVelocity = 2;
-let optionsOpacity = 0;
-
-// Power-up variables
-let playerPowerUp = null;
-let powerUpDuration = 10000; // 10 seconds
-let powerUpTimer = 0;
+@@ -68,768 +62,771 @@
 
 // Initialize the game
 function init() {
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
-
 // Check if the device is mobile
 isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
 // Set up the canvas size
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-
 playerImage = document.getElementById('playerImage');
 enemyImages = {
     [ENEMY_TYPES.BASIC]: document.getElementById('enemyBasicImage'),
@@ -90,7 +66,6 @@ enemyImages = {
 shootSound = document.getElementById('shootSound');
 hitSound = document.getElementById('hitSound');
 powerUpSound = document.getElementById('powerUpSound');
-
 player = {
     x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
     y: CANVAS_HEIGHT - PLAYER_HEIGHT - 10,
@@ -100,7 +75,6 @@ player = {
     shielded: false,
     rapidFire: false
 };
-
 enemies = [];
 bullets = [];
 powerUps = [];
@@ -111,12 +85,9 @@ barriers = [
 score = 0;
 level = 1;
 lives = 3;
-
 highScores = JSON.parse(localStorage.getItem('highScores')) || [];
-
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
-
 // Add touch event listeners for mobile
 if (isMobile) {
     document.getElementById('mobileControls').style.display = 'flex';
@@ -135,10 +106,8 @@ function resizeCanvas() {
 const gameContainer = document.getElementById('gameContainer');
 const containerWidth = gameContainer.clientWidth;
 const containerHeight = gameContainer.clientHeight;
-
 const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
 let newWidth, newHeight;
-
 if (containerWidth / containerHeight > aspectRatio) {
     newHeight = containerHeight;
     newWidth = newHeight * aspectRatio;
@@ -147,8 +116,8 @@ if (containerWidth / containerHeight > aspectRatio) {
     newHeight = newWidth / aspectRatio;
 }
 
-canvas.style.width = ${newWidth}px;
-canvas.style.height = ${newHeight}px;
+canvas.style.width = `${newWidth}px`;
+canvas.style.height = `${newHeight}px`;
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
@@ -167,19 +136,16 @@ createRegularLevel();
 function createRegularLevel() {
 const enemyCount = 5 + (level * 5); // Starts with 10 enemies, increases by 5 each level
 const availableTypes = [ENEMY_TYPES.BASIC];
-
 if (level >= 5) availableTypes.push(ENEMY_TYPES.FAST);
 if (level >= 10) availableTypes.push(ENEMY_TYPES.TOUGH);
 if (level >= 15) availableTypes.push(ENEMY_TYPES.ZIGZAG);
 if (level >= 20) availableTypes.push(ENEMY_TYPES.CIRCULAR);
 if (level >= 25) availableTypes.push(ENEMY_TYPES.DIVING);
-
 for (let i = 0; i < enemyCount; i++) {
     const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
     let health = 1 + Math.floor(level / 10);
     let speed = (1 + (level * 0.05)) * difficulty.multiplier;
     let movementPattern = MOVEMENT_PATTERNS.LINEAR;
-
     switch (type) {
         case ENEMY_TYPES.FAST:
             speed *= 1.5;
@@ -221,7 +187,6 @@ function createBossLevel() {
 const bossHealth = 50 + (level * 5);
 const bossSpeed = (1 + (level * 0.05)) * difficulty.multiplier;
 const bossSize = 2 + Math.min(level / 20, 3); // Boss size increases with level, max 5x
-
 enemies.push({
     x: CANVAS_WIDTH / 2 - (ENEMY_WIDTH * bossSize) / 2,
     y: 50,
@@ -234,7 +199,6 @@ enemies.push({
     canShoot: true,
     movementPattern: MOVEMENT_PATTERNS.LINEAR
 });
-
 // Add a few regular enemies
 for (let i = 0; i < 3; i++) {
     createRegularLevel();
@@ -244,7 +208,6 @@ for (let i = 0; i < 3; i++) {
 // Handle keydown events
 function handleKeyDown(e) {
 if (isMobile) return; // Ignore keyboard events on mobile devices
-
 if (gameState === 'menu') {
     if (e.key === 'ArrowUp') {
         selectedMenuOption = (selectedMenuOption - 1 + 2) % 2;
@@ -312,7 +275,6 @@ createEnemies();
 // Shoot a bullet
 function shoot() {
 if (gameState !== 'playing') return;
-
 if (player.rapidFire) {
     for (let i = -1; i <= 1; i++) {
         bullets.push({
@@ -381,7 +343,6 @@ speed: 2
 function collectPowerUp(powerUp) {
 playerPowerUp = powerUp.type;
 powerUpTimer = powerUpDuration;
-
 switch (powerUp.type) {
     case POWER_UP_TYPES.SHIELD:
         player.shielded = true;
@@ -447,13 +408,11 @@ function updateGameplay(deltaTime) {
 // Move player
 if (player.moveLeft && player.x > 0) player.x -= player.speed * (deltaTime / 16);
 if (player.moveRight && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed * (deltaTime / 16);
-
 // Move bullets
 bullets.forEach((bullet, index) => {
     bullet.y -= bullet.speed * (deltaTime / 16);
     if (bullet.y + bullet.height < 0 || bullet.y > CANVAS_HEIGHT) bullets.splice(index, 1);
 });
-
 // Move enemies
 enemies.forEach(enemy => {
     if (enemy.type === ENEMY_TYPES.BOSS) {
@@ -473,7 +432,6 @@ enemies.forEach(enemy => {
         }
     }
 });
-
 // Move and check power-ups
 powerUps.forEach((powerUp, index) => {
     powerUp.y += powerUp.speed;
@@ -489,7 +447,6 @@ powerUps.forEach((powerUp, index) => {
         powerUps.splice(index, 1);
     }
 });
-
 // Update power-up timer
 if (playerPowerUp) {
     powerUpTimer -= deltaTime;
@@ -522,7 +479,6 @@ drawGameplay();
 function drawMenuScreen(deltaTime) {
 ctx.fillStyle = 'black';
 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
 // Animate title
 titleY += titleVelocity * (deltaTime / 16);
 if (titleY > 120) {
@@ -534,28 +490,24 @@ if (titleY < 100 && titleVelocity < 0) {
 }
 
 ctx.fillStyle = 'white';
-ctx.font = ${36 * scaleFactor}px PrStart;
+ctx.font = `${36 * scaleFactor}px PrStart`;
 ctx.textAlign = 'center';
 ctx.fillText('Malakai Cabal', CANVAS_WIDTH / 2, titleY * scaleFactor);
 ctx.fillText('Invadooorz', CANVAS_WIDTH / 2, (titleY + 50) * scaleFactor);
-
 // Fade in options
 optionsOpacity += 0.02 * (deltaTime / 16);
 if (optionsOpacity > 1) optionsOpacity = 1;
-
 ctx.globalAlpha = optionsOpacity;
-ctx.font = ${24 * scaleFactor}px PrStart;
+ctx.font = `${24 * scaleFactor}px PrStart`;
 ctx.fillStyle = selectedMenuOption === 0 ? 'yellow' : 'white';
 ctx.fillText('Start', CANVAS_WIDTH / 2, 300 * scaleFactor);
 ctx.fillStyle = selectedMenuOption === 1 ? 'yellow' : 'white';
 ctx.fillText('High Scores', CANVAS_WIDTH / 2, 350 * scaleFactor);
-
 ctx.fillStyle = 'white';
-ctx.font = ${16 * scaleFactor}px PrStart;
+ctx.font = `${16 * scaleFactor}px PrStart`;
 ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
 ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
 ctx.globalAlpha = 1;
-
 // Draw player ship
 if (playerImage.complete) {
     ctx.drawImage(playerImage, CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, CANVAS_HEIGHT - PLAYER_HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -587,20 +539,17 @@ enemyTypes.forEach((type, index) => {
 function drawDifficultyScreen() {
 ctx.fillStyle = 'black';
 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
 ctx.fillStyle = 'white';
-ctx.font = ${36 * scaleFactor}px PrStart;
+ctx.font = `${36 * scaleFactor}px PrStart`;
 ctx.textAlign = 'center';
 ctx.fillText('Select Difficulty', CANVAS_WIDTH / 2, 100 * scaleFactor);
-
-ctx.font = ${24 * scaleFactor}px PrStart;
+ctx.font = `${24 * scaleFactor}px PrStart`;
 Object.values(DIFFICULTY).forEach((diff, index) => {
     ctx.fillStyle = diff === difficulty ? 'yellow' : 'white';
     ctx.fillText(diff.label, CANVAS_WIDTH / 2, (250 + index * 50) * scaleFactor);
 });
-
 ctx.fillStyle = 'white';
-ctx.font = ${16 * scaleFactor}px PrStart;
+ctx.font = `${16 * scaleFactor}px PrStart`;
 ctx.fillText('Use arrow keys to navigate', CANVAS_WIDTH / 2, 450 * scaleFactor);
 ctx.fillText('Press SPACE to select', CANVAS_WIDTH / 2, 480 * scaleFactor);
 }
@@ -611,16 +560,16 @@ ctx.fillStyle = 'black';
 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 ctx.fillStyle = 'white';
-ctx.font = ${36 * scaleFactor}px PrStart;
+ctx.font = `${36 * scaleFactor}px PrStart`;
 ctx.textAlign = 'center';
 ctx.fillText('High Scores', CANVAS_WIDTH / 2, 100 * scaleFactor);
 
-ctx.font = ${18 * scaleFactor}px PrStart;
+ctx.font = `${18 * scaleFactor}px PrStart`;
 highScores.slice(0, 10).forEach((score, index) => {
-    ctx.fillText(${index + 1}. ${score.name}: ${score.score}, CANVAS_WIDTH / 2, (200 + index * 30) * scaleFactor);
+    ctx.fillText(`${index + 1}. ${score.name}: ${score.score}`, CANVAS_WIDTH / 2, (200 + index * 30) * scaleFactor);
 });
 
-ctx.font = ${16 * scaleFactor}px PrStart;
+ctx.font = `${16 * scaleFactor}px PrStart`;
 ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, 550 * scaleFactor);
 }
 
@@ -680,7 +629,6 @@ hitSound.play();
 });
 }
 });
-
 // Check if enemies reached the player
 enemies.forEach(enemy => {
     if (enemy.y + enemy.height >= player.y) {
@@ -699,7 +647,6 @@ enemies.forEach(enemy => {
 function drawGameplay() {
 // Clear canvas
 ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
 // Draw player
 if (playerImage.complete) {
     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
@@ -707,7 +654,6 @@ if (playerImage.complete) {
     ctx.fillStyle = 'blue';
     ctx.fillRect(player.x, player.y, player.width, player.height);
 }
-
 // Draw shield effect
 if (player.shielded) {
     ctx.strokeStyle = 'cyan';
@@ -753,10 +699,9 @@ bullets.forEach(bullet => {
     }
     ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
 });
-
 // Draw power-ups
 powerUps.forEach(powerUp => {
-    ctx.font = ${30 * scaleFactor}px Arial;
+    ctx.font = `${30 * scaleFactor}px Arial`;
     ctx.fillText(
         powerUp.type === POWER_UP_TYPES.SHIELD ? '🛡️' :
         powerUp.type === POWER_UP_TYPES.RAPID_FIRE ? '🔥' : '❤️',
@@ -768,23 +713,21 @@ ctx.fillStyle = 'gray';
 barriers.forEach(barrier => {
     ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
 });
-
 // Draw score, level, and lives
 ctx.fillStyle = 'gray';
-ctx.font = ${16 * scaleFactor}px PrStart;
+ctx.font = `${16 * scaleFactor}px PrStart`;
 ctx.textAlign = 'left';
-ctx.fillText(Score: ${score}, 20 * scaleFactor, 30 * scaleFactor);
+ctx.fillText(`Score: ${score}`, 20 * scaleFactor, 30 * scaleFactor);
 ctx.textAlign = 'right';
-ctx.fillText(LVL: ${level}, (CANVAS_WIDTH - 20) * scaleFactor, 30 * scaleFactor);
+ctx.fillText(`LVL: ${level}`, (CANVAS_WIDTH - 20) * scaleFactor, 30 * scaleFactor);
 ctx.textAlign = 'center';
-ctx.fillText(Lives: ${'❤️'.repeat(lives)}, CANVAS_WIDTH / 2, 30 * scaleFactor);
-
+ctx.fillText(`Lives: ${'❤️'.repeat(lives)}`, CANVAS_WIDTH / 2, 30 * scaleFactor);
 // Draw power-up timer
 if (playerPowerUp) {
     ctx.fillStyle = 'white';
-    ctx.font = ${14 * scaleFactor}px PrStart;
+    ctx.font = `${14 * scaleFactor}px PrStart`;
     ctx.textAlign = 'center';
-    ctx.fillText(${playerPowerUp}: ${Math.ceil(powerUpTimer / 1000)}s, 
+    ctx.fillText(`${playerPowerUp}: ${Math.ceil(powerUpTimer / 1000)}s`, 
                  CANVAS_WIDTH / 2, (CANVAS_HEIGHT - 20) * scaleFactor);
 }
 }
@@ -792,7 +735,6 @@ if (playerPowerUp) {
 // Game over
 function gameOver() {
 gameState = 'gameOver';
-
 // Update high scores
 const playerName = prompt("Enter your name for the high score:");
 highScores.push({ name: playerName || "Anonymous", score: score });
@@ -807,15 +749,15 @@ ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 ctx.fillStyle = 'white';
-ctx.font = ${36 * scaleFactor}px PrStart;
+ctx.font = `${36 * scaleFactor}px PrStart`;
 ctx.textAlign = 'center';
 ctx.fillText('Game Over', CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 - 50) * scaleFactor);
 
-ctx.font = ${24 * scaleFactor}px PrStart;
-ctx.fillText(Final Score: ${score}, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 10) * scaleFactor);
-ctx.fillText(Levels Completed: ${level - 1}, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 50) * scaleFactor);
+ctx.font = `${24 * scaleFactor}px PrStart`;
+ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 10) * scaleFactor);
+ctx.fillText(`Levels Completed: ${level - 1}`, CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 50) * scaleFactor);
 
-ctx.font = ${18 * scaleFactor}px PrStart;
+ctx.font = `${18 * scaleFactor}px PrStart`;
 ctx.fillText('Press SPACE to return to menu', CANVAS_WIDTH / 2, (CANVAS_HEIGHT / 2 + 100) * scaleFactor);
 }
 
@@ -832,4 +774,4 @@ requestAnimationFrame(gameLoop);
 window.addEventListener('load', function() {
 document.getElementById('loading').style.display = 'none';
 init();
-}); 
+});
