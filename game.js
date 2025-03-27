@@ -43,8 +43,9 @@ EXTRA_LIFE: 'extraLife'
 };
 
 // Game variables
-@@ -68,768 +62,771 @@
-
+function init() {
+    canvas = document.getElementById('gameCanvas'); // Ensure proper variable name
+}
 // Initialize the game
 function init() {
 canvas = document.getElementById('gameCanvas');
